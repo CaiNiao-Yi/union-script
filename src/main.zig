@@ -12,7 +12,7 @@ pub fn main() !void {
     var env = try std.process.getEnvMap(allocator);
     defer env.deinit();
     const repositories = env.get("US_REPOSITORIES") orelse {
-        std.debug.print("错误：未设置 US_REPOSITORIES 环境变量\n", .{});
+        std.debug.print("Error:Enverment US_REPOSITORIES not found\n", .{});
         return error.RepositoriesNotSet;
     };
     if (args.len < 2) {
@@ -23,9 +23,11 @@ pub fn main() !void {
     const command = args[1];
     if (mem.eql(u8, command, "list")) {
         try listScripts(repositories);
+    } else if (mem.eql(u8, command, "ls-exe")) {
+        try listExecutor();
     } else if (mem.eql(u8, command, "run")) {
         if (args.len < 3) {
-            std.debug.print("错误：缺少脚本名称\n", .{});
+            std.debug.print("Error:Script name not found\n", .{});
             try printUsage();
             return;
         }
@@ -47,16 +49,26 @@ fn listScripts(repo: []const u8) !void {
         }
     }
 }
+fn listExecutor() !void {
+    var iterate = exectuor.scriptTypes.?.iterator();
+    try utilits.println("NAME\tEXT", .{});
+    while (iterate.next()) |entry| {
+        const ext = entry.key_ptr.*;
+        const name = entry.value_ptr.*.name;
+        try utilits.println("{s}\t{s}", .{ name, ext });
+    }
+}
 fn printUsage() !void {
     try utilits.print(
-        \\Union-Script 管理器
+        \\Union-Script
         \\
-        \\用法：
-        \\  us list         - 列出所有可用脚本
-        \\  us run <script> - 运行指定脚本
+        \\Usage：
+        \\  us list         - list all script
+        \\  us ls-exe         - list all executor
+        \\  us run <script> - run script
         \\
-        \\环境变量：
-        \\  US_REPOSITORIES - 指定脚本仓库路径
+        \\env：
+        \\  US_REPOSITORIES - script repositories
     , .{});
 }
 fn getScript(allocator: mem.Allocator, repositories: []const u8, script_name: []const u8) ![]const u8 {
