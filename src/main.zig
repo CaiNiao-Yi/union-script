@@ -3,9 +3,11 @@ const utilits = @import("utilit.zig");
 const exectuor = @import("executor.zig");
 const mem = std.mem;
 pub fn main() !void {
-    var arena = std.heap.ArenaAllocator.init(std.heap.page_allocator);
-    defer arena.deinit();
-    const allocator = arena.allocator();
+    // const allocator = std.heap.c_allocator;
+
+    var gpa = std.heap.GeneralPurposeAllocator(.{}){};
+    const allocator = gpa.allocator();
+    defer _ = gpa.deinit();
     var args = try std.process.argsAlloc(allocator);
     defer std.process.argsFree(allocator, args);
     var env = try std.process.getEnvMap(allocator);
@@ -20,7 +22,6 @@ pub fn main() !void {
         try printUsage();
         return;
     }
-    try exectuor.init(allocator);
     const command = args[1];
     if (mem.eql(u8, command, "list")) {
         try listScripts(repositories);
@@ -64,20 +65,18 @@ fn listScripts(repo: []const u8) !void {
     while (try iterate.next()) |entry| {
         if (entry.kind == .file) {
             const ext = std.fs.path.extension(entry.name);
-            if (exectuor.scriptTypes.?.get(ext) != null) {
+            if (exectuor.getScriptType(ext) != exectuor.ScriptType.Unknown) {
                 const script_name = entry.name[0 .. entry.name.len - ext.len];
-                try utilits.println("- {s}", .{script_name});
+                try utilits.println("{s}", .{script_name});
             }
         }
     }
 }
 fn listExecutor() !void {
-    var iterate = exectuor.scriptTypes.?.iterator();
-    try utilits.println("NAME\tEXT", .{});
-    while (iterate.next()) |entry| {
-        const ext = entry.key_ptr.*;
-        const name = entry.value_ptr.*.name;
-        try utilits.println("{s}\t{s}", .{ name, ext });
+    const exectuors = exectuor.executors;
+    try utilits.println("NAME\tEXTENSION", .{});
+    for (exectuors) |entry| {
+        try utilits.println("{s}\t{s}", .{ entry.name, entry.extension });
     }
 }
 fn printUsage() !void {
@@ -87,7 +86,7 @@ fn printUsage() !void {
         \\Usage：
         \\  us list           - list all script
         \\  us ls-exe         - list all executor
-        \\  us edit           - edit script
+        \\  us edit <script>  - edit script
         \\  us run <script>   - run script
         \\
         \\env：
@@ -95,9 +94,9 @@ fn printUsage() !void {
     , .{});
 }
 fn getScript(allocator: mem.Allocator, repositories: []const u8, script_name: []const u8) ![]const u8 {
-    var type_iterator = exectuor.scriptTypes.?.iterator();
-    while (type_iterator.next()) |entry| {
-        const ext = entry.key_ptr.*;
+    const executors = exectuor.executors;
+    for (executors) |entry| {
+        const ext = entry.extension;
         const full_path = try std.fmt.allocPrint(allocator, "{s}/{s}{s}", .{ repositories, script_name, ext });
         if (std.fs.accessAbsolute(full_path, .{ .mode = .read_only })) |_| {
             return full_path;
