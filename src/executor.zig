@@ -6,6 +6,7 @@ const Child = std.process.Child;
 const ScriptExecutor = struct {
     name: []const u8,
     extension: []const u8,
+    executable: []const u8,
     execute: *const fn (allocator: mem.Allocator, full_path: []const u8, args: []const []const u8) anyerror!void,
 };
 pub const ScriptType = enum {
@@ -14,11 +15,44 @@ pub const ScriptType = enum {
     Fish,
     Unknown,
 };
-pub const executors = [_]ScriptExecutor{
-    .{ .name = "Python", .extension = ".py", .execute = pythonScriptExecuter },
-    .{ .name = "Bash", .extension = ".sh", .execute = shellScriptExecuter },
-    .{ .name = "Fish", .extension = ".fish", .execute = fishShellScriptExectuer },
+pub const executorsDefinitions = [_]ScriptExecutor{
+    .{ .name = "Python", .extension = ".py", .executable = "python", .execute = pythonScriptExecuter },
+    .{ .name = "Bash", .extension = ".sh", .executable = "bash", .execute = shellScriptExecuter },
+    .{ .name = "Fish", .extension = ".fish", .executable = "fish", .execute = fishShellScriptExectuer },
 };
+pub var executors: []ScriptExecutor = undefined;
+pub fn initExecutors(alloc: mem.Allocator) !void {
+    var executlorsList = std.ArrayList(ScriptExecutor).init(alloc);
+    defer {
+        if (executlorsList.capacity != 0) {
+            executlorsList.deinit();
+        }
+    }
+    for (executorsDefinitions) |exec| {
+        if (try isExecutableAvailable(exec.executable, alloc)) {
+            try executlorsList.append(exec);
+        }
+    }
+    if (executlorsList.items.len > 0) {
+        executors = try alloc.alloc(ScriptExecutor, executlorsList.items.len);
+        std.mem.copyBackwards(ScriptExecutor, executors, executlorsList.items);
+        executlorsList.capacity = 0;
+    } else {
+        executors = &[_]ScriptExecutor{};
+    }
+}
+fn isExecutableAvailable(executable: []const u8, alloc: mem.Allocator) !bool {
+    var child = Child.init(&[_][]const u8{ executable, "--version" }, alloc);
+    child.stdout_behavior = .Ignore;
+    child.stderr_behavior = .Ignore;
+    _ = child.spawnAndWait() catch |err| {
+        switch (err) {
+            error.InvalidExe => return false,
+            else => return true,
+        }
+    };
+    return true;
+}
 const ExtensionMapping = struct {
     extension: []const u8,
     scriptType: ScriptType,

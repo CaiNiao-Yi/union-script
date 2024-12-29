@@ -5,9 +5,9 @@ const mem = std.mem;
 pub fn main() !void {
     // const allocator = std.heap.c_allocator;
 
-    var gpa = std.heap.GeneralPurposeAllocator(.{}){};
-    const allocator = gpa.allocator();
-    defer _ = gpa.deinit();
+    var arena = std.heap.ArenaAllocator.init(std.heap.c_allocator);
+    defer arena.deinit();
+    const allocator = arena.allocator();
     var args = try std.process.argsAlloc(allocator);
     defer std.process.argsFree(allocator, args);
     var env = try std.process.getEnvMap(allocator);
@@ -23,6 +23,8 @@ pub fn main() !void {
         return;
     }
     const command = args[1];
+    try exectuor.initExecutors(allocator);
+    defer allocator.free(exectuor.executors);
     if (mem.eql(u8, command, "list")) {
         try listScripts(repositories);
     } else if (mem.eql(u8, command, "ls-exe")) {
