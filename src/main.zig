@@ -102,8 +102,8 @@ fn getScript(allocator: mem.Allocator, repositories: []const u8, script_name: []
         const full_path = try std.fmt.allocPrint(allocator, "{s}/{s}{s}", .{ repositories, script_name, ext });
         if (std.fs.accessAbsolute(full_path, .{ .mode = .read_only })) |_| {
             return full_path;
-        } else |err| {
-            return err;
+        } else |_| {
+            continue;
         }
     }
     return error.ScriptNotFound;

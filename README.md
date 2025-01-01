@@ -10,6 +10,7 @@
 - **User-friendly interface**: A simple command-line interface for quick script execution.
 - **Cross-platform compatibility**: Supports Windows, Linux, and macOS.
 - **Modular design**: Easy to extend and customize.
+
 ## Usage
 
 Union Script provides a variety of commands for managing and running scripts. Below are the available commands:
@@ -24,32 +25,44 @@ Usage:
 Environment Variables:
   US_REPOSITORIES   - Path to the script repositories
 ```
+
 ## Getting Started
 
 ### Clone the Repository
+
 First, clone the repository to your local machine:
+
 ```bash
 git clone https://github.com/your-username/union-script.git
 cd union-script
 ```
+
 ### Build the Project
+
 Build the project using Zig:
+
 ```bash
 zig build
 ```
+
 ### Set the Environment
+
 Set the environment variable to specify the path of your script repositories:
+
 ```bash
 export US_REPOSITORIES=<script repositories path>
 ```
 
 ### Run a Script
+
 Execute a script by running the following command:
+
 ```bash
 us run <script name>
 ```
 
 ## Planned Features
+
 - Support for additional scripting languages and runtimes.
 - Multi-repository support to manage multiple script locations.
 
