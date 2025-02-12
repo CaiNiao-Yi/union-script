@@ -61,18 +61,14 @@ fn editScript(allocator: mem.Allocator, full_path: []const u8, editor: []const u
     _ = try child.spawnAndWait();
 }
 fn listScripts(repo: []const u8) !void {
-    var dir = try std.fs.openDirAbsolute(repo, .{ .iterate = true });
-    defer dir.close();
-    var iterate = dir.iterate();
-    while (try iterate.next()) |entry| {
-        if (entry.kind == .file) {
-            const ext = std.fs.path.extension(entry.name);
-            if (exectuor.getScriptType(ext) != exectuor.ScriptType.Unknown) {
-                const script_name = entry.name[0 .. entry.name.len - ext.len];
-                try utilits.println("{s}", .{script_name});
-            }
-        }
+    const script_list = try utilits.getScriptList(repo);
+    for (script_list.items) |entry| {
+        const script_basename = std.fs.path.basename(entry);
+        const ext = std.fs.path.extension(entry);
+        const script_name = script_basename[0 .. script_basename.len - ext.len];
+        try utilits.println("{s}", .{script_name});
     }
+    script_list.deinit();
 }
 fn listExecutor() !void {
     const exectuors = exectuor.executors;
@@ -96,14 +92,15 @@ fn printUsage() !void {
     , .{});
 }
 fn getScript(allocator: mem.Allocator, repositories: []const u8, script_name: []const u8) ![]const u8 {
+    const scripts = try utilits.getScriptList(repositories);
     const executors = exectuor.executors;
     for (executors) |entry| {
         const ext = entry.extension;
-        const full_path = try std.fmt.allocPrint(allocator, "{s}/{s}{s}", .{ repositories, script_name, ext });
-        if (std.fs.accessAbsolute(full_path, .{ .mode = .read_only })) |_| {
-            return full_path;
-        } else |_| {
-            continue;
+        const target_script_basename = try std.fmt.allocPrint(allocator, "{s}{s}", .{ script_name, ext });
+        for (scripts.items) |script| {
+            if (mem.eql(u8, target_script_basename, std.fs.path.basename(script))) {
+                return script;
+            }
         }
     }
     return error.ScriptNotFound;
