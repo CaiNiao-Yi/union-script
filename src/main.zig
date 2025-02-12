@@ -3,8 +3,6 @@ const utilits = @import("utilit.zig");
 const exectuor = @import("executor.zig");
 const mem = std.mem;
 pub fn main() !void {
-    // const allocator = std.heap.c_allocator;
-
     var arena = std.heap.ArenaAllocator.init(std.heap.c_allocator);
     defer arena.deinit();
     const allocator = arena.allocator();
@@ -25,7 +23,7 @@ pub fn main() !void {
     const command = args[1];
     try exectuor.initExecutors(allocator);
     defer allocator.free(exectuor.executors);
-    if (mem.eql(u8, command, "list")) {
+    if (mem.eql(u8, command, "list") or mem.eql(u8, command, "ls")) {
         try listScripts(repositories);
     } else if (mem.eql(u8, command, "ls-exe")) {
         try listExecutor();
