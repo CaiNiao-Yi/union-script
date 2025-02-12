@@ -13,12 +13,14 @@ pub const ScriptType = enum {
     Python,
     Bash,
     Fish,
+    Ruby,
     Unknown,
 };
 pub const executorsDefinitions = [_]ScriptExecutor{
     .{ .name = "Python", .extension = ".py", .executable = "python", .execute = pythonScriptExecuter },
     .{ .name = "Bash", .extension = ".sh", .executable = "bash", .execute = shellScriptExecuter },
     .{ .name = "Fish", .extension = ".fish", .executable = "fish", .execute = fishShellScriptExectuer },
+    .{ .name = "Ruby", .extension = ".rb", .executable = "fish", .execute = rubyScriptExectuer },
 };
 pub var executors: []ScriptExecutor = undefined;
 pub fn initExecutors(alloc: mem.Allocator) !void {
@@ -73,6 +75,7 @@ pub fn run(allocator: mem.Allocator, full_path: []const u8, args: []const []cons
         .Python => try executors[@intFromEnum(ScriptType.Python)].execute(allocator, full_path, args),
         .Bash => try executors[@intFromEnum(ScriptType.Bash)].execute(allocator, full_path, args),
         .Fish => try executors[@intFromEnum(ScriptType.Fish)].execute(allocator, full_path, args),
+        .Ruby => try executors[@intFromEnum(ScriptType.Ruby)].execute(allocator, full_path, args),
         .Unknown => std.debug.print("Unsupported script type: {s}\n", .{ext}),
     }
 }
@@ -116,6 +119,20 @@ fn fishShellScriptExectuer(allocator: mem.Allocator, full_path: []const u8, args
     defer full_args.deinit();
 
     try full_args.append("fish");
+    try full_args.append(full_path);
+    for (args) |arg| {
+        try full_args.append(arg);
+    }
+    var child = Child.init(full_args.items, allocator);
+    child.stderr_behavior = .Inherit;
+    child.stdout_behavior = .Inherit;
+    _ = try child.spawnAndWait();
+}
+fn rubyScriptExectuer(allocator: mem.Allocator, full_path: []const u8, args: []const []const u8) !void {
+    var full_args = std.ArrayList([]const u8).init(allocator);
+    defer full_args.deinit();
+
+    try full_args.append("ruby");
     try full_args.append(full_path);
     for (args) |arg| {
         try full_args.append(arg);
