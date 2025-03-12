@@ -1,9 +1,22 @@
 const std = @import("std");
+const builtin = @import("builtin");
 const utilits = @import("utilit.zig");
 const exectuor = @import("executor.zig");
 const mem = std.mem;
+
+var debug_allocator: std.heap.DebugAllocator(.{}) = .init;
+
 pub fn main() !void {
-    var arena = std.heap.ArenaAllocator.init(std.heap.c_allocator);
+    const gpa, const is_debug = gpa: {
+        break :gpa switch (builtin.mode) {
+            .Debug, .ReleaseSafe => .{ debug_allocator.allocator(), true },
+            .ReleaseFast, .ReleaseSmall => .{ std.heap.smp_allocator, false },
+        };
+    };
+    defer if (is_debug) {
+        _ = debug_allocator.deinit();
+    };
+    var arena = std.heap.ArenaAllocator.init(gpa);
     defer arena.deinit();
     const allocator = arena.allocator();
     var args = try std.process.argsAlloc(allocator);
@@ -45,6 +58,10 @@ pub fn main() !void {
         const script_found = try getScript(allocator, repositories, args[2]);
         try exectuor.run(allocator, script_found, args[3..]);
         allocator.free(script_found);
+    } else if (mem.eql(u8, command, "version")) {
+        try printVersion();
+    } else {
+        try printUsage();
     }
 }
 fn editScript(allocator: mem.Allocator, full_path: []const u8, editor: []const u8) !void {
@@ -88,6 +105,13 @@ fn printUsage() !void {
         \\env：
         \\  US_REPOSITORIES - script repositories
     , .{});
+}
+fn printVersion() !void {
+    try utilits.print(
+        \\Union Script 
+        \\version: 0.2.1
+        \\build: zig-{s}
+    , .{builtin.zig_version_string});
 }
 fn getScript(allocator: mem.Allocator, repositories: []const u8, script_name: []const u8) ![]const u8 {
     const scripts = try utilits.getScriptList(repositories);

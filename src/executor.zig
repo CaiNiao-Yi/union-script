@@ -20,7 +20,7 @@ pub const executorsDefinitions = [_]ScriptExecutor{
     .{ .name = "Python", .extension = ".py", .executable = "python", .execute = pythonScriptExecuter },
     .{ .name = "Bash", .extension = ".sh", .executable = "bash", .execute = shellScriptExecuter },
     .{ .name = "Fish", .extension = ".fish", .executable = "fish", .execute = fishShellScriptExectuer },
-    .{ .name = "Ruby", .extension = ".rb", .executable = "fish", .execute = rubyScriptExectuer },
+    .{ .name = "Ruby", .extension = ".rb", .executable = "ruby", .execute = rubyScriptExectuer },
 };
 pub var executors: []ScriptExecutor = undefined;
 pub fn initExecutors(alloc: mem.Allocator) !void {
@@ -59,7 +59,7 @@ const ExtensionMapping = struct {
     extension: []const u8,
     scriptType: ScriptType,
 };
-const extensionMap = [_]ExtensionMapping{ .{ .extension = ".py", .scriptType = ScriptType.Python }, .{ .extension = ".sh", .scriptType = ScriptType.Bash }, .{ .extension = ".fish", .scriptType = ScriptType.Fish } };
+const extensionMap = [_]ExtensionMapping{ .{ .extension = ".py", .scriptType = ScriptType.Python }, .{ .extension = ".sh", .scriptType = ScriptType.Bash }, .{ .extension = ".fish", .scriptType = ScriptType.Fish }, .{ .extension = ".rb", .scriptType = ScriptType.Ruby } };
 pub fn getScriptType(extension: []const u8) ScriptType {
     for (extensionMap) |e| {
         if (std.mem.eql(u8, e.extension, extension)) {
